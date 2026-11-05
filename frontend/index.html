@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OrderFlow</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 860px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
+  h1 { margin-bottom: .25rem; }
+  .sub { color: #666; margin-top: 0; }
+  form { display: flex; gap: .5rem; flex-wrap: wrap; margin: 1.5rem 0; }
+  input { padding: .5rem; border: 1px solid #ccc; border-radius: 6px; flex: 1; min-width: 120px; }
+  button { padding: .5rem 1.2rem; border: 0; border-radius: 6px; background: #2563eb; color: #fff; cursor: pointer; }
+  .stats { display: flex; gap: .75rem; margin-bottom: 1rem; }
+  .stat { flex: 1; padding: .75rem; border-radius: 8px; background: #f3f4f6; text-align: center; }
+  .stat b { display: block; font-size: 1.4rem; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: .5rem; border-bottom: 1px solid #eee; }
+  .badge { padding: .15rem .6rem; border-radius: 999px; font-size: .8rem; }
+  .PENDING { background: #fef3c7; } .PROCESSING { background: #dbeafe; }
+  .COMPLETED { background: #d1fae5; } .FAILED { background: #fee2e2; }
+  #msg { color: #b91c1c; min-height: 1.2rem; }
+</style>
+</head>
+<body>
+<h1>OrderFlow</h1>
+<p class="sub">Orders are queued in SQS and processed by a background worker.</p>
+
+<form id="form">
+  <input id="customer" placeholder="Customer" required>
+  <input id="item" placeholder="Item" required>
+  <input id="quantity" type="number" min="1" value="1" required>
+  <button type="submit">Place order</button>
+</form>
+<div id="msg"></div>
+
+<div class="stats" id="stats"></div>
+
+<table>
+  <thead><tr><th>#</th><th>Customer</th><th>Item</th><th>Qty</th><th>Status</th><th>Created</th></tr></thead>
+  <tbody id="rows"></tbody>
+</table>
+
+<script>
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+async function load() {
+  try {
+    const [orders, stats] = await Promise.all([
+      fetch('/api/orders').then((r) => r.json()),
+      fetch('/api/stats').then((r) => r.json()),
+    ]);
+    document.getElementById('rows').innerHTML = orders.map((o) => `
+      <tr><td>${o.id}</td><td>${esc(o.customer)}</td><td>${esc(o.item)}</td><td>${o.quantity}</td>
+      <td><span class="badge ${esc(o.status)}">${esc(o.status)}</span></td>
+      <td>${new Date(o.created_at).toLocaleTimeString()}</td></tr>`).join('');
+    const counts = Object.fromEntries(stats.map((s) => [s.status, s.count]));
+    document.getElementById('stats').innerHTML = ['PENDING','PROCESSING','COMPLETED','FAILED']
+      .map((s) => `<div class="stat"><b>${counts[s] || 0}</b>${s}</div>`).join('');
+  } catch (e) { document.getElementById('msg').textContent = 'Cannot reach API'; }
+}
+
+document.getElementById('form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('msg');
+  msg.textContent = '';
+  const res = await fetch('/api/orders', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      customer: document.getElementById('customer').value,
+      item: document.getElementById('item').value,
+      quantity: document.getElementById('quantity').value,
+    }),
+  });
+  if (!res.ok) msg.textContent = (await res.json()).error || 'Failed';
+  else e.target.reset();
+  load();
+});
+
+load();
+setInterval(load, 2000);
+</script>
+</body>
+</html>
