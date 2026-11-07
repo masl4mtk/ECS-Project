@@ -9,4 +9,3 @@ WORKDIR /app
 COPY --from=build /app .
 USER node
 CMD ["node", "worker.js"]
-
