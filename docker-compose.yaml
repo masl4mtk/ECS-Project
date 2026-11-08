@@ -9,6 +9,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
 
+  elasticmq:
   api:
     build:
       context: ./app/api
@@ -21,6 +22,27 @@ services:
     depends_on:
       - db
 
+  worker:
+    build:
+      context: ./app/worker
+      dockerfile: Dockerfile
+    environment:
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_HOST: db
+    depends_on:
+      - db
+  frontend:
+    build:
+      context: ./app/frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - api
+    volumes:
+      - ./app/frontend/nginx.local.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "8080:8080"
 
 volumes:
   postgres_data:
