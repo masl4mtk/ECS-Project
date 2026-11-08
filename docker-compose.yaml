@@ -49,6 +49,7 @@ services:
 
     depends_on:
       - db
+      - elasticmq
   frontend:
     build:
       context: ./app/frontend
