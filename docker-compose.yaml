@@ -14,7 +14,7 @@ services:
     ports:
       - "9324:9324"
     volumes:
-      - ./app/worker/elasticmq.conf:/opt/elasticmq.conf
+      - ./app/elasticmq/elasticmq.conf:/opt/elasticmq.conf
   api:
     build:
       context: ./app/api
@@ -30,6 +30,7 @@ services:
       AWS_SECRET_ACCESS_KEY: local
     depends_on:
       - db
+      - elasticmq
 
   worker:
     build:
