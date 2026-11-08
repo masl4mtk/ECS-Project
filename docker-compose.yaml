@@ -28,10 +28,10 @@ services:
       AWS_REGION: us-east-1
       AWS_ACCESS_KEY_ID: local
       AWS_SECRET_ACCESS_KEY: local
+      SQS_QUEUE_URL: http://elasticmq:9324/000000000000/orders-queue
     depends_on:
       - db
       - elasticmq
-
   worker:
     build:
       context: ./app/worker
@@ -45,6 +45,8 @@ services:
       AWS_REGION: us-east-1
       AWS_ACCESS_KEY_ID: local
       AWS_SECRET_ACCESS_KEY: local
+      SQS_QUEUE_URL: http://elasticmq:9324/000000000000/orders-queue
+
     depends_on:
       - db
   frontend:
