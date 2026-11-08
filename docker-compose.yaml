@@ -10,6 +10,11 @@ services:
       POSTGRES_DB: ${DB_NAME}
 
   elasticmq:
+    image: softwaremill/elasticmq-native:1.4.0
+    ports:
+      - "9324:9324"
+    volumes:
+      - ./app/worker/elasticmq.conf:/opt/elasticmq.conf
   api:
     build:
       context: ./app/api
@@ -19,6 +24,10 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
       DB_HOST: db
+      SQS_ENDPOINT: http://elasticmq:9324
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
     depends_on:
       - db
 
@@ -31,6 +40,10 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
       DB_HOST: db
+      SQS_ENDPOINT: http://elasticmq:9324
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
     depends_on:
       - db
   frontend:
@@ -46,4 +59,3 @@ services:
 
 volumes:
   postgres_data:
-
