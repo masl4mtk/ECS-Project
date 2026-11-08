@@ -10,7 +10,7 @@ services:
       POSTGRES_DB: ${DB_NAME}
 
   elasticmq:
-    image: softwaremill/elasticmq-native:1.4.0
+    image: softwaremill/elasticmq-native:1.7.1
     ports:
       - "9324:9324"
     volumes:
