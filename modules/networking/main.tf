@@ -63,3 +63,45 @@ resource "aws_nat_gateway" "main" {
     Name = "ecs-project-nat-gateway"
   }
 }
+
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
+  }
+  tags = {
+    Name = "ecs-project-public-route-table"
+  }
+}
+
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.main.id
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.main.id
+  }
+  tags = {
+    Name = "ecs-project-private-route-table"
+  }
+}
+
+resource "aws_route_table_association" "public-subnet-A" {
+  subnet_id      = aws_subnet.public-subnet-A.id
+  route_table_id = aws_route_table.public.id
+}
+
+resource "aws_route_table_association" "public-subnet-B" {
+  subnet_id      = aws_subnet.public-subnet-B.id
+  route_table_id = aws_route_table.public.id
+}
+
+resource "aws_route_table_association" "private-subnet-A" {
+  subnet_id      = aws_subnet.private-subnet-A.id
+  route_table_id = aws_route_table.private.id
+}
+
+resource "aws_route_table_association" "private-subnet-B" {
+  subnet_id      = aws_subnet.private-subnet-B.id
+  route_table_id = aws_route_table.private.id
+}
