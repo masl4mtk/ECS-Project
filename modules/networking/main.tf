@@ -5,6 +5,10 @@ resource "aws_vpc" "main" {
   }
 }
 
+########################################
+## Subnets
+########################################
+
 resource "aws_subnet" "public-subnet-A" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.1.0/24"
@@ -43,12 +47,21 @@ resource "aws_subnet" "private-subnet-B" {
     }
 }
 
+########################################
+## Internet Gateway
+########################################
+
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
   tags = {
     Name = "ecs-project-igw"
   }
 }
+
+########################################
+## NAT Gateway
+########################################
+
 resource "aws_eip" "nat" {
   vpc = true
   tags = {
@@ -63,6 +76,10 @@ resource "aws_nat_gateway" "main" {
     Name = "ecs-project-nat-gateway"
   }
 }
+
+#########################################
+## Route Tables & Associations
+#########################################
 
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
@@ -104,4 +121,52 @@ resource "aws_route_table_association" "private-subnet-A" {
 resource "aws_route_table_association" "private-subnet-B" {
   subnet_id      = aws_subnet.private-subnet-B.id
   route_table_id = aws_route_table.private.id
+}
+
+
+resource "aws_security_group" "alb_sg" {
+  name        = "alb-sg"
+  description = "Security group for ALB"
+  vpc_id      = aws_vpc.main.id
+  tags = {
+    Name = "ecs-project-alb-sg"
+  }
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "frontend_api_sg" {
+    name        = "frontend-api-sg"
+    description = "Security group for frontend and API"
+    vpc_id      = aws_vpc.main.id
+    tags = {
+        Name = "ecs-project-frontend-api-sg"
+    }
+
+    ingress {
+        from_port = 80
+        to_port   = 3000
+        protocol  = "tcp"
+        security_groups = [aws_security_group.alb_sg.id]
+    }
+}
+
+resource "aws_security_group" "worker_sg" {
+    name        = "worker-sg"
+    description = "Security group for worker"
+    vpc_id      = aws_vpc.main.id
+    tags = {
+        Name = "ecs-project-worker-sg"
+    }
 }
