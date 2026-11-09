@@ -1,32 +1,8 @@
-resource "aws_ecr_repository" "api" {
-    name                 = "api"
+resource "aws_ecr_repository" "app_repos" {
+    for_each = toset(["frontend", "worker", "api"])
+    name     = orderflow-${each.key}-repo
     image_tag_mutability = "MUTABLE"
     image_scanning_configuration {
         scan_on_push = true
-    }
-    tags = {
-        Name = "api"
-    }
-}
-
-resource "aws_ecr_repository" "worker" {
-    name                 = "worker"
-    image_tag_mutability = "MUTABLE"
-    image_scanning_configuration {
-        scan_on_push = true
-    }
-    tags = {
-        Name = "worker"
-    }
-}
-
-resource "aws_ecr_repository" "frontend" {
-    name                 = "frontend"
-    image_tag_mutability = "MUTABLE"
-    image_scanning_configuration {
-        scan_on_push = true
-    }
-    tags = {
-        Name = "frontend"
     }
 }
