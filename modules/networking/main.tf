@@ -123,6 +123,9 @@ resource "aws_route_table_association" "private-subnet-B" {
   route_table_id = aws_route_table.private.id
 }
 
+##########################################
+## Security Groups
+##########################################
 
 resource "aws_security_group" "alb_sg" {
   name        = "alb-sg"
