@@ -151,7 +151,7 @@ resource "aws_security_group" "alb_sg" {
 
 resource "aws_security_group" "frontend_api_sg" {
     name        = "frontend-api-sg"
-    description = "Security group for frontend and API"
+    description = "Security group for frontend and API tasks"
     vpc_id      = aws_vpc.main.id
     tags = {
         Name = "ecs-project-frontend-api-sg"
@@ -167,9 +167,32 @@ resource "aws_security_group" "frontend_api_sg" {
 
 resource "aws_security_group" "worker_sg" {
     name        = "worker-sg"
-    description = "Security group for worker"
+    description = "Security group for worker tasks"
     vpc_id      = aws_vpc.main.id
     tags = {
         Name = "ecs-project-worker-sg"
+    }
+}
+
+resource "aws_security_group" "db_sg" {
+    name        = "db-sg"
+    description = "Security group for database"
+    vpc_id      = aws_vpc.main.id
+    tags = {
+        Name = "ecs-project-db-sg"
+    }
+
+    ingress {
+        from_port       = 5432
+        to_port         = 5432
+        protocol        = "tcp"
+        security_groups = [aws_security_group.worker_sg.id]
+    }
+
+    ingress {
+        from_port       = 5432
+        to_port         = 5432
+        protocol        = "tcp"
+        security_groups = [aws_security_group.frontend_api_sg.id]
     }
 }
