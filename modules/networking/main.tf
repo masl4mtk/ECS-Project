@@ -47,3 +47,23 @@ resource "aws_subnet" "private-subnet-B" {
     }
 }
 
+resource "aws_internet_gateway" "main" {
+  vpc_id = aws_vpc.main.id
+  tags = {
+    Name = "ecs-project-igw"
+  }
+}
+resource "aws_eip" "nat" {
+  vpc = true
+  tags = {
+    Name = "ecs-project-nat-eip"
+  }
+}
+
+resource "aws_nat_gateway" "main" {
+  allocation_id = aws_eip.nat.id
+  subnet_id     = aws_subnet.public-subnet-A[0].id
+  tags = {
+    Name = "ecs-project-nat-gateway"
+  }
+}
