@@ -196,3 +196,12 @@ resource "aws_security_group" "db_sg" {
         security_groups = [aws_security_group.frontend_api_sg.id]
     }
 }
+
+resource "aws_db_subnet_group" "main" {
+    name       = "ecs-project-db-subnet-group"
+    description = "Subnet group for RDS database"
+    subnet_ids = [aws_subnet.private-subnet-A.id, aws_subnet.private-subnet-B.id]
+    tags = {
+        Name = "ecs-project-db-subnet-group"
+    }
+}
