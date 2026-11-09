@@ -6,7 +6,6 @@ resource "aws_vpc" "main" {
 }
 
 resource "aws_subnet" "public-subnet-A" {
-  count                   = 2
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.1.0/24"
   map_public_ip_on_launch = true
@@ -17,7 +16,6 @@ resource "aws_subnet" "public-subnet-A" {
 }
 
 resource "aws_subnet" "public-subnet-B" {
-  count                   = 2
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.2.0/24"
   map_public_ip_on_launch = true
@@ -28,7 +26,6 @@ resource "aws_subnet" "public-subnet-B" {
 }
 
 resource "aws_subnet" "private-subnet-A" {
-  count             = 2
   vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.3.0/24"
   availability_zone = "us-east-1a"
@@ -38,7 +35,6 @@ resource "aws_subnet" "private-subnet-A" {
 }
 
 resource "aws_subnet" "private-subnet-B" {
-  count             = 2
   vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.4.0/24"
   availability_zone = "us-east-1b"
@@ -62,7 +58,7 @@ resource "aws_eip" "nat" {
 
 resource "aws_nat_gateway" "main" {
   allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public-subnet-A[0].id
+  subnet_id     = aws_subnet.public-subnet-A.id
   tags = {
     Name = "ecs-project-nat-gateway"
   }
