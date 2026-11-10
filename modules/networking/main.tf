@@ -1,5 +1,6 @@
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
+  enable_dns_hostnames = true
   tags = {
     Name = "ecs-project-vpc"
   }
@@ -72,6 +73,7 @@ resource "aws_eip" "nat" {
 resource "aws_nat_gateway" "main" {
   allocation_id = aws_eip.nat.id
   subnet_id     = aws_subnet.public-subnet-A.id
+  depends_on    = [aws_internet_gateway.main]
   tags = {
     Name = "ecs-project-nat-gateway"
   }
@@ -136,8 +138,8 @@ resource "aws_security_group" "alb_sg" {
   }
 
   ingress {
-    from_port   = 80
-    to_port     = 80
+    from_port   = 8080
+    to_port     = 8080
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -147,6 +149,12 @@ resource "aws_security_group" "alb_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
 }
 
 resource "aws_security_group" "frontend_api_sg" {
@@ -159,9 +167,23 @@ resource "aws_security_group" "frontend_api_sg" {
 
     ingress {
         from_port = 80
+        to_port   = 80
+        protocol  = "tcp"
+        security_groups = [aws_security_group.alb_sg.id]
+    }
+
+    ingress {
+        from_port = 3000
         to_port   = 3000
         protocol  = "tcp"
         security_groups = [aws_security_group.alb_sg.id]
+    }
+
+    egress {
+        from_port   = 0
+        to_port     = 0
+        protocol    = "-1"
+        cidr_blocks = ["0.0.0.0/0"]
     }
 }
 
@@ -171,6 +193,13 @@ resource "aws_security_group" "worker_sg" {
     vpc_id      = aws_vpc.main.id
     tags = {
         Name = "ecs-project-worker-sg"
+    }
+
+    egress {
+        from_port   = 0
+        to_port     = 0
+        protocol    = "-1"
+        cidr_blocks = ["0.0.0.0/0"]
     }
 }
 
