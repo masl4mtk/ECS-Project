@@ -18,10 +18,13 @@ resource "aws_secretsmanager_secret_version" "db_secret_value" {
 resource "aws_db_instance" "postgres" {
     allocated_storage    = 20
     engine               = "postgres"
-    engine_version       = "13.4"
+    engine_version       = "15.14"
     instance_class       = "db.t3.micro"
+    skip_final_snapshot   = true
+    storage_encrypted     = true
+    publicly_accessible   = false
     db_name              = "orderflow"
-    username             = "admin"
+    username             = "orderflow_admin"
     password             = aws_secretsmanager_secret_version.db_secret_value.secret_string
     db_subnet_group_name = var.db_subnet_group_name
     vpc_security_group_ids = [var.db_security_group_id]
