@@ -53,8 +53,9 @@ resource "aws_iam_role_policy_attachment" "ecs_execution_secret_policy_attachmen
 }
 
 resource "aws_iam_role" "ecs_task_role" {
-  name               = "ecs-task-role"
-  assume_role_policy = data.aws_iam_policy_document.ecs_task_trust.json
+    for_each = toset(["frontend", "worker", "api"])
+    name               = "ecs-${each.key}-task-role"
+    assume_role_policy = data.aws_iam_policy_document.ecs_task_trust.json
 
   tags = {
     Service   = "ecs"
@@ -62,9 +63,17 @@ resource "aws_iam_role" "ecs_task_role" {
   }
 }
 
+locals {
+    roles = {
+        api    = ["sqs:SendMessage"]
+        worker = ["sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes"]
+    }
+}
+
 resource "aws_iam_policy" "ecs_task_policy" {
-  name        = "ecs-app-task-policy"
-  description = "Permissions for the ECS application containers"
+    for_each = local.roles
+    name        = "ecs-${each.key}-task-policy"
+    description = "Permissions for the ECS application containers"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -89,6 +98,7 @@ resource "aws_iam_policy" "ecs_task_policy" {
 }
 
 resource "aws_iam_role_policy_attachment" "ecs_task" {
-  role       = aws_iam_role.ecs_task_role.name
-  policy_arn = aws_iam_policy.ecs_task_policy.arn
+  for_each = local.roles
+  role = aws_iam_role.ecs_task_role[each.key].name
+  policy_arn = aws_iam_policy.ecs_task_policy[each.key].arn
 }
