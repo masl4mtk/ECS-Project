@@ -41,7 +41,7 @@ resource "aws_iam_policy" "ecs_execution_secret_policy" {
           "secretsmanager:GetSecretValue",
           "kms:Decrypt"
         ]
-        Resource = "*"
+        Resource = var.ecs_secrets_arn
       }
     ]
   })
@@ -69,34 +69,7 @@ resource "aws_iam_policy" "ecs_task_policy" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-      {
-        # S3 access for the application
-        Sid    = "S3Access"
-        Effect = "Allow"
-        Action = [
-          "s3:GetObject",
-          "s3:PutObject",
-          "s3:ListBucket",
-        ]
-        Resource = [
-          "arn:aws:s3:::app-data-bucket",
-          "arn:aws:s3:::app-data-bucket/*",
-        ]
-      },
-      {
-        # DynamoDB access
-        Sid    = "DynamoDBAccess"
-        Effect = "Allow"
-        Action = [
-          "dynamodb:GetItem",
-          "dynamodb:PutItem",
-          "dynamodb:Query",
-          "dynamodb:UpdateItem",
-        ]
-        Resource = [
-          "arn:aws:dynamodb:us-east-1:*:table/app-*",
-        ]
-      },
+      
       {
         # SQS access for message processing
         Sid    = "SQSAccess"
@@ -108,7 +81,7 @@ resource "aws_iam_policy" "ecs_task_policy" {
           "sqs:GetQueueAttributes",
         ]
         Resource = [
-          "arn:aws:sqs:us-east-1:*:app-*",
+          var.sqs_queue_arn
         ]
       }
     ]
