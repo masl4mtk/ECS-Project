@@ -15,8 +15,8 @@ resource "aws_sqs_queue" "order_queue" {
 }
 
 resource "aws_sqs_queue" "order-queue-deadletter" {
-  name                      = "orderflow-queue-deadletter"
-  }
+  name = "orderflow-queue-deadletter"
+}
 
 resource "aws_sqs_queue_redrive_allow_policy" "order_queue_redrive_allow_policy" {
   queue_url = aws_sqs_queue.order-queue-deadletter.id
