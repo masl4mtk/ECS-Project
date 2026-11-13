@@ -1,8 +1,12 @@
+variable "alb_security_group_id" {
+  type = string
+}
+
 resource "aws_lb" "test" {
   name               = "test-lb-tf"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = var.alb_security_goup
+  security_groups    = [var.alb_security_group_id]
   subnets            = [for subnet in aws_subnet.public : subnet.id]
 
   enable_deletion_protection = true
