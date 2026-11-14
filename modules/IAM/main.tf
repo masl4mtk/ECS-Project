@@ -83,12 +83,7 @@ resource "aws_iam_policy" "ecs_task_policy" {
         # SQS access for message processing
         Sid    = "SQSAccess"
         Effect = "Allow"
-        Action = [
-          "sqs:SendMessage",
-          "sqs:ReceiveMessage",
-          "sqs:DeleteMessage",
-          "sqs:GetQueueAttributes",
-        ]
+        Action = each.value
         Resource = [
           var.sqs_queue_arn
         ]
