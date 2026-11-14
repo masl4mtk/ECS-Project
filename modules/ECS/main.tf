@@ -27,9 +27,93 @@ resource "aws_ecs_cluster" "main" {
   }
 }
 
-resource "aws_cloudwatch_log_group" "example" {
+resource "aws_cloudwatch_log_group" "orderflow" {
   for_each = local.services
   name              = "/ecs/orderflow-${each.key}"
   retention_in_days = 7
 }
-  
+
+
+resource "aws_ecs_task_definition" "api" {
+  family                   = "orderflow-api"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = 256
+  memory                   = 512
+  execution_role_arn       = var.execution_role_arn
+  task_role_arn = var.task_role_arn["api"]
+
+  container_definitions = jsonencode([
+    {
+      name      = "app"
+      image     = "${var.ecr_repository_urls[api]}:${var.image_tag}"
+      cpu       = 256
+      memory    = 512
+      essential = true
+
+      portMappings = [
+        {
+          containerPort = 8080
+          protocol      = "tcp"
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.ordeflow
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "app"
+        }
+      }
+    }
+  ])
+
+  tags = {
+    Name = "frontend-app"
+  }
+}
+
+resource "aws_ecs_task_definition" "frontend" {
+  family                   = "orderflow-frontend"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = 256
+  memory                   = 512
+  execution_role_arn       = var.execution_role_arn
+
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "X86_64"
+  }
+
+  container_definitions = jsonencode([
+    {
+      name      = "app"
+      image     = "${var.ecr_repository_urls[frontend]}:${var.image_tag}"
+      cpu       = 256
+      memory    = 512
+      essential = true
+
+      portMappings = [
+        {
+          containerPort = 8080
+          protocol      = "tcp"
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.ordeflow
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "app"
+        }
+      }
+    }
+  ])
+
+  tags = {
+    Name = "frontend-app"
+  }
+}
