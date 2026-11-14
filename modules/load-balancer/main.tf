@@ -1,5 +1,5 @@
 resource "aws_lb" "ecs-lb" {
-  name               = "test-lb-tf"
+  name               = "ecs-lb-tf"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [var.alb_security_group_id]
