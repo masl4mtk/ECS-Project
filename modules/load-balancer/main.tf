@@ -33,11 +33,11 @@ resource "aws_lb_target_group" "frontend_tg" {
   }
 }
 
-resource "aws_lb_target_group" "api_tg"{
-  name = "orderflow-api-tg"
-  port = 3000
-  protocol = "HTTP"
-  vpc_id = var.vpc_id
+resource "aws_lb_target_group" "api_tg" {
+  name        = "orderflow-api-tg"
+  port        = 3000
+  protocol    = "HTTP"
+  vpc_id      = var.vpc_id
   target_type = "ip"
 
   health_check {
@@ -52,7 +52,7 @@ resource "aws_lb_target_group" "api_tg"{
   tags = {
     Name = "orderflow-api-tg"
   }
-  
+
 }
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.ecs-lb.arn
