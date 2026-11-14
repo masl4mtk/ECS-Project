@@ -3,7 +3,12 @@ output "alb_arn" {
   value       = aws_lb.ecs-lb.arn
 }
 
-output "target_group_arn" {
+output "frontend_target_group_arn" {
   description = "ARN of the frontend target group"
   value       = aws_lb_target_group.frontend_tg.arn
+}
+
+output "api_target_group_arn" {
+  description = "ARN of the api target group"
+  value       = aws_lb_target_group.api_tg.arn
 }
