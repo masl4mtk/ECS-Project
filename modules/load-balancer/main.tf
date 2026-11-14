@@ -5,7 +5,7 @@ resource "aws_lb" "ecs-lb" {
   security_groups    = [var.alb_security_group_id]
   subnets            = var.subnet_ids
 
-  enable_deletion_protection = true
+  enable_deletion_protection = false
 
   tags = {
     Environment = "production"
