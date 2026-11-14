@@ -17,14 +17,14 @@ module "sqs" {
 }
 
 module "iam" {
-  source = "./modules/IAM"
-  sqs_queue_arn = module.sqs.queue_arn
+  source          = "./modules/IAM"
+  sqs_queue_arn   = module.sqs.queue_arn
   ecs_secrets_arn = module.rds.db_secret_arn
 }
 
 module "alb" {
-  source = "./modules/load-balancer"
+  source                = "./modules/load-balancer"
   alb_security_group_id = module.network.alb_security_group_id
-  subnet_ids = module.network.public_subnet_ids
-  vpc_id = module.network.vpc_id
+  subnet_ids            = module.network.public_subnet_ids
+  vpc_id                = module.network.vpc_id
 }

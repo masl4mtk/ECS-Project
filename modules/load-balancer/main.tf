@@ -13,10 +13,10 @@ resource "aws_lb" "ecs-lb" {
 }
 
 resource "aws_lb_target_group" "frontend_tg" {
-  name     = "orderflow-frontend-tg"
-  port     = 8080
-  protocol = "HTTP"
-  vpc_id   = var.vpc_id
+  name        = "orderflow-frontend-tg"
+  port        = 8080
+  protocol    = "HTTP"
+  vpc_id      = var.vpc_id
   target_type = "ip"
 
   health_check {
