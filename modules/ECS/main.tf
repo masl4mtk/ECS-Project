@@ -3,7 +3,6 @@ locals {
   services = toset(["frontend", "api", "worker"])
 
   environment = [
-    { name = "DB_Host", value = var.db_address },
     { name = "DB_HOST", value = var.db_address },
     { name = "DB_NAME", value = var.db_name },
     { name = "DB_USER", value = var.db_username },
@@ -33,46 +32,9 @@ resource "aws_cloudwatch_log_group" "orderflow" {
   retention_in_days = 7
 }
 
-
-resource "aws_ecs_task_definition" "api" {
-  family                   = "orderflow-api"
-  network_mode             = "awsvpc"
-  requires_compatibilities = ["FARGATE"]
-  cpu                      = 256
-  memory                   = 512
-  execution_role_arn       = var.execution_role_arn
-  task_role_arn = var.task_role_arn["api"]
-
-  container_definitions = jsonencode([
-    {
-      name      = "app"
-      image     = "${var.ecr_repository_urls[api]}:${var.image_tag}"
-      cpu       = 256
-      memory    = 512
-      essential = true
-
-      portMappings = [
-        {
-          containerPort = 8080
-          protocol      = "tcp"
-        }
-      ]
-
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          "awslogs-group"         = aws_cloudwatch_log_group.ordeflow
-          "awslogs-region"        = var.aws_region
-          "awslogs-stream-prefix" = "app"
-        }
-      }
-    }
-  ])
-
-  tags = {
-    Name = "frontend-app"
-  }
-}
+#####################
+#####################
+#####################
 
 resource "aws_ecs_task_definition" "frontend" {
   family                   = "orderflow-frontend"
@@ -90,10 +52,11 @@ resource "aws_ecs_task_definition" "frontend" {
   container_definitions = jsonencode([
     {
       name      = "app"
-      image     = "${var.ecr_repository_urls[frontend]}:${var.image_tag}"
+      image     = "${var.ecr_repository_urls["frontend"]}:${var.image_tag}"
       cpu       = 256
       memory    = 512
       essential = true
+      environment = local.environment
 
       portMappings = [
         {
@@ -105,7 +68,7 @@ resource "aws_ecs_task_definition" "frontend" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group"         = aws_cloudwatch_log_group.ordeflow
+          "awslogs-group"         = aws_cloudwatch_log_group.orderflow["frontend"].name
           "awslogs-region"        = var.aws_region
           "awslogs-stream-prefix" = "app"
         }
@@ -115,5 +78,106 @@ resource "aws_ecs_task_definition" "frontend" {
 
   tags = {
     Name = "frontend-app"
+  }
+}
+
+
+#####################
+#####################
+#####################
+
+
+resource "aws_ecs_task_definition" "api" {
+  family                   = "orderflow-api"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = 256
+  memory                   = 512
+  execution_role_arn       = var.execution_role_arn
+  task_role_arn            = var.task_role_arns["api"]
+  
+
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "X86_64"
+  }
+
+  container_definitions = jsonencode([
+    {
+      name      = "app"
+      image     = "${var.ecr_repository_urls["api"]}:${var.image_tag}"
+      cpu       = 256
+      memory    = 512
+      essential = true
+      environment = local.environment
+      secrets = local.secrets
+
+      portMappings = [
+        {
+          containerPort = 3000
+          protocol      = "tcp"
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.orderflow["api"].name
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "app"
+        }
+      }
+    }
+  ])
+
+  tags = {
+    Name = "api-app"
+  }
+}
+
+
+#####################
+#####################
+#####################
+
+resource "aws_ecs_task_definition" "worker" {
+  family                   = "orderflow-worker"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = 256
+  memory                   = 512
+  execution_role_arn       = var.execution_role_arn
+  task_role_arn            = var.task_role_arns["worker"]
+  
+
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "X86_64"
+  }
+
+  container_definitions = jsonencode([
+    {
+      name      = "app"
+      image     = "${var.ecr_repository_urls["worker"]}:${var.image_tag}"
+      cpu       = 256
+      memory    = 512
+      essential = true
+      environment = local.environment
+      secrets = local.secrets
+
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.orderflow["worker"].name
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "app"
+        }
+      }
+    }
+  ])
+
+  tags = {
+    Name = "worker-app"
   }
 }
