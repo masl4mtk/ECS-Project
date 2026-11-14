@@ -18,3 +18,18 @@ locals {
 }
 
 
+resource "aws_ecs_cluster" "main" {
+  name = "orderflow-cluster"
+
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
+}
+
+resource "aws_cloudwatch_log_group" "example" {
+  for_each = local.services
+  name              = "/ecs/orderflow-${each.key}"
+  retention_in_days = 7
+}
+  
