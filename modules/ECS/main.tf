@@ -188,16 +188,16 @@ resource "aws_ecs_task_definition" "worker" {
 #######################
 
 resource "aws_ecs_service" "frontend" {
-  name            = "orderflow-frontend" 
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.frontend.arn
-  desired_count   = var.desired_count
-  launch_type = "FARGATE"
+  name                              = "orderflow-frontend"
+  cluster                           = aws_ecs_cluster.main.id
+  task_definition                   = aws_ecs_task_definition.frontend.arn
+  desired_count                     = var.desired_count
+  launch_type                       = "FARGATE"
   health_check_grace_period_seconds = 60
 
   network_configuration {
-    subnets = var.private_subnet_ids
-    security_groups = [var.frontend_api_sg_id]
+    subnets          = var.private_subnet_ids
+    security_groups  = [var.frontend_api_sg_id]
     assign_public_ip = false
   }
 
@@ -207,4 +207,39 @@ resource "aws_ecs_service" "frontend" {
     container_port   = 8080
   }
 
+}
+
+resource "aws_ecs_service" "api" {
+  name                              = "orderflow-api"
+  cluster                           = aws_ecs_cluster.main.id
+  task_definition                   = aws_ecs_task_definition.api.arn
+  desired_count                     = var.desired_count
+  launch_type                       = "FARGATE"
+  health_check_grace_period_seconds = 60
+
+  network_configuration {
+    subnets          = var.private_subnet_ids
+    security_groups  = [var.frontend_api_sg_id]
+    assign_public_ip = false
+  }
+
+  load_balancer {
+    target_group_arn = var.api_target_group_arn
+    container_name   = "app"
+    container_port   = 3000
+  }
+}
+
+resource "aws_ecs_service" "worker" {
+  name            = "orderflow-worker"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.worker.arn
+  desired_count   = var.worker_desired_count
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = var.private_subnet_ids
+    security_groups  = [var.worker_sg_id]
+    assign_public_ip = false
+  }
 }
