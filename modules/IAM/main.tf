@@ -52,21 +52,21 @@ resource "aws_iam_role_policy_attachment" "ecs_execution_secret_policy_attachmen
   policy_arn = aws_iam_policy.ecs_execution_secret_policy.arn
 }
 
+locals {
+  roles = {
+    api    = ["sqs:SendMessage"]
+    worker = ["sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes"]
+  }
+}
+
 resource "aws_iam_role" "ecs_task_role" {
-  for_each           = toset(["frontend", "worker", "api"])
+  for_each           = local.roles
   name               = "ecs-${each.key}-task-role"
   assume_role_policy = data.aws_iam_policy_document.ecs_task_trust.json
 
   tags = {
     Service   = "ecs"
     ManagedBy = "terraform"
-  }
-}
-
-locals {
-  roles = {
-    api    = ["sqs:SendMessage"]
-    worker = ["sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes"]
   }
 }
 
