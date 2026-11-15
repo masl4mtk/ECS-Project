@@ -7,7 +7,7 @@ output "db_secret_arn" {
 }
 
 output "db_name" {
-  value = aws_db_instance.postgresdb_name
+  value = aws_db_instance.postgres.db_name
 }
 
 output "db_username" {
