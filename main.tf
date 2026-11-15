@@ -28,3 +28,26 @@ module "alb" {
   subnet_ids            = module.network.public_subnet_ids
   vpc_id                = module.network.vpc_id
 }
+
+module "ecs" {
+  source = "./modules/ECS"
+  db_address = module.rds.db_address
+  db_name = module.rds.db_name
+  db_secret_arn = module.rds.db_secret_arn
+  db_username = module.rds.db_username
+  sqs_queue_url = module.sqs.queue_url
+  private_subnet_ids = module.network.private_subnet_ids
+  frontend_api_sg_id = module.network.frontend_api_security_group_id
+  worker_sg_id = module.network.worker_security_group_id
+  api_target_group_arn = module.alb.api_target_group_arn
+  frontend_target_group_arn = module.alb.frontend_target_group_arn
+  aws_region = "us-east-1"
+  image_tag = "123"
+  ecr_repository_urls = module.ecr.ecr_repository_urls
+  execution_role_arn = module.iam.execution_role_arn
+  task_role_arns = {
+    "worker" = module.iam.ecs_task_role_worker_arn
+    "api" = module.iam.ecs_task_role_api_arn
+  }
+  
+}
