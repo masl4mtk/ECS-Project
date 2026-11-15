@@ -49,5 +49,6 @@ module "ecs" {
     "worker" = module.iam.ecs_task_role_worker_arn
     "api" = module.iam.ecs_task_role_api_arn
   }
+  depends_on = [ module.alb ]
   
 }
