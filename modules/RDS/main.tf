@@ -18,7 +18,7 @@ resource "aws_secretsmanager_secret_version" "db_secret_value" {
 resource "aws_db_instance" "postgres" {
   allocated_storage      = 20
   engine                 = "postgres"
-  engine_version         = "15.14"
+  engine_version         = "15.7"
   instance_class         = "db.t3.micro"
   skip_final_snapshot    = true
   storage_encrypted      = true
