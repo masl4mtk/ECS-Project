@@ -19,4 +19,7 @@ terraform {
 
 provider "aws" {
   region = "us-east-1"
-}
+  }
+
+
+  ## Tags must be added later
