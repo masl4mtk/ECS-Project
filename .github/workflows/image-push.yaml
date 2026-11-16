@@ -14,6 +14,9 @@ permissions:
 
 jobs:
     build-and-push:
+        strategy:
+            matrix:
+                service: [api, frontend, worker]
         runs-on: ubuntu-latest
         steps:
             - name: Checkout repository
@@ -22,6 +25,18 @@ jobs:
             - name: Configure AWS credentials
               uses: aws-actions/configure-aws-credentials@v4
               with:
-                role-to-assume: ${{ vars.AWS_ROLE_ARN}}
+                role-to-assume: ${{ vars.AWS_ROLE_ARN }}
                 aws-region: us-east-1
-    
+            
+            - name: Login to Amazon ECR
+              uses: aws-actions/amazon-ecr-login@v2
+              id: login-ecr
+
+            - name: Build, tag and push ${{ matrix.service }} image
+              env:
+                REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+                REPOSITORY: orderflow-${{ matrix.service }}-repo
+                IMAGE_TAG: ${{ github.sha }}
+              run: |
+                docker build --platform linux/amd64 -t $REGISTRY/$REPOSITORY:$IMAGE_TAG app/${{ matrix.service }}
+                docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
