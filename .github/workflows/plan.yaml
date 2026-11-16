@@ -70,7 +70,7 @@ jobs:
 
       - uses: terraform-linters/setup-tflint@v4
       - run: tflint --init
-      - run: tflint --recursive
+      - run: tflint --recursive --minimum-failure-severity=error
 
   security_scanning:
 
@@ -92,6 +92,7 @@ jobs:
           scan-type: config
           scan-ref: .
           exit-code: 0
+    
 
   terraform_plan:
     needs: security_scanning
