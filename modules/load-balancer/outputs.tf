@@ -18,7 +18,7 @@ output "zone_id" {
   value       = aws_lb.ecs-lb.zone_id
 }
 
-output "dns_name" {
+output "alb_dns_name" {
   description = "DNS name of ALB"
   value       = aws_lb.ecs-lb.dns_name
 }
