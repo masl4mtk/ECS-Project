@@ -45,6 +45,8 @@ worker service  --> polls SQS, sets PROCESSING, then COMPLETED or FAILED
 │   └── SQS/                  Orders queue and dead-letter queue
 ├── bootstrap/                S3 state bucket and the GitHub Actions OIDC role
 ├── .github/workflows/        The three pipelines (see below)
+├── .gitignore                Excludes .env, state files, .terraform/ and tfvars
+├── .terraform.lock.hcl       Provider version lock file
 ├── docker-compose.yaml       Local environment
 ├── main.tf                   Root module wiring the modules together
 ├── terraform.tf              Terraform and provider versions, S3 backend
@@ -93,11 +95,11 @@ All three authenticate with OIDC (`aws-actions/configure-aws-credentials`) and a
 
 | Pipeline | Trigger | What it does |
 |---|---|---|
-| **Image build and push** | Push to `main` that changes `app/**`, or manual | Creates the ECR repositories (`terraform apply -target=module.ecr`), then builds the three images and pushes them tagged with the commit SHA |
+| **Image build and push** | Push to `main` that changes `app/**` or `modules/ECR/**`, or manual | Creates the ECR repositories (`terraform apply -target=module.ecr`), then builds the three images and pushes them tagged with the commit SHA |
 | **Plan and validate** | Pull request, push to `feature/**`, or manual | `terraform fmt`, `validate`, `tflint`, Trivy configuration scan, then `terraform plan` |
-| **Deploy** | Manual, with the image tag (commit SHA) as input | `terraform plan`, then `terraform apply` after manual approval through the `production` environment |
+| **Deploy** | Automatically after a successful image build and push | `terraform plan` using the commit SHA of the images just built, then `terraform apply` after manual approval through the `production` environment |
 
-Deploying a version means giving the deploy pipeline the commit SHA of images that already exist in ECR. That tag flows into Terraform through the `image_tag` variable, so every running version traces back to a commit.
+The image pipeline tags every image with the commit SHA. The deploy pipeline starts when that run finishes and passes the same SHA to Terraform as `image_tag`, so every running version traces back to a commit. Nothing is entered by hand.
 
 ## Design decisions and trade-offs
 
