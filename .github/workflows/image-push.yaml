@@ -6,6 +6,7 @@ on:
             - main
         paths:
             - "app/**"
+            - modules/ECR/**
     workflow_dispatch:
 
 permissions:
@@ -34,8 +35,9 @@ jobs:
 
             - name: Create ECR repositories
               run: terraform apply -target=module.ecr -auto-approve
-              
+
     build-and-push:
+        needs: create-repos
         strategy:
             matrix:
                 service: [api, frontend, worker]
