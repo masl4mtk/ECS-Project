@@ -87,14 +87,18 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: Security scanning of Terraform files
-        uses: aquasecurity/tfsec-action@v1.0.0
+        uses: aquasecurity/trivy-action@0.35.0
         with:
-          additional_args: --soft-fail
+          scan-type: config
+          scan-ref: .
+          exit-code: 0
 
   terraform_plan:
     needs: security_scanning
     name: Terraform plan
     runs-on: ubuntu-latest
+    env:
+        TF_VAR_domain_name: ${{ vars.DOMAIN_NAME }}
 
     steps:
       - name: Checkout
