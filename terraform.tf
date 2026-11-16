@@ -19,6 +19,15 @@ terraform {
 
 provider "aws" {
   region = "us-east-1"
+
+  default_tags {
+    tags = {
+      Project     = "orderflow"
+      Environment = "production"
+      Owner       = "Maslamah"
+      ManagedBy   = "terraform"
+    }
+  }
 }
 
 
