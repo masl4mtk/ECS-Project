@@ -43,7 +43,7 @@ module "ecs" {
   api_target_group_arn      = module.alb.api_target_group_arn
   frontend_target_group_arn = module.alb.frontend_target_group_arn
   aws_region                = "us-east-1"
-  image_tag                 = "latest"
+  image_tag                 = var.image_tag
   ecr_repository_urls       = module.ecr.ecr_repository_urls
   execution_role_arn        = module.iam.execution_role_arn
   task_role_arns = {
@@ -52,11 +52,6 @@ module "ecs" {
   }
   depends_on = [module.alb]
 
-}
-
-variable "domain_name" {
-  description = "Domain name"
-  type        = string
 }
 
 module "route53" {
