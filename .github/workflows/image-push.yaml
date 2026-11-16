@@ -16,6 +16,7 @@ permissions:
 jobs:
 
     create-repos:
+        name: Create ECR repositories
         runs-on: ubuntu-latest
         env:
             TF_VAR_domain_name: ${{ vars.DOMAIN_NAME }}
@@ -39,6 +40,7 @@ jobs:
               run: terraform apply -target=module.ecr -auto-approve
 
     build-and-push:
+        name: Build and Push
         needs: create-repos
         strategy:
             matrix:
