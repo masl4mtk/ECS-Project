@@ -27,28 +27,40 @@ module "alb" {
   alb_security_group_id = module.network.alb_security_group_id
   subnet_ids            = module.network.public_subnet_ids
   vpc_id                = module.network.vpc_id
+  certificate_arn       = module.route53.certificate_arn
 }
 
 module "ecs" {
-  source = "./modules/ECS"
-  db_address = module.rds.db_address
-  db_name = module.rds.db_name
-  db_secret_arn = module.rds.db_secret_arn
-  db_username = module.rds.db_username
-  sqs_queue_url = module.sqs.queue_url
-  private_subnet_ids = module.network.private_subnet_ids
-  frontend_api_sg_id = module.network.frontend_api_security_group_id
-  worker_sg_id = module.network.worker_security_group_id
-  api_target_group_arn = module.alb.api_target_group_arn
+  source                    = "./modules/ECS"
+  db_address                = module.rds.db_address
+  db_name                   = module.rds.db_name
+  db_secret_arn             = module.rds.db_secret_arn
+  db_username               = module.rds.db_username
+  sqs_queue_url             = module.sqs.queue_url
+  private_subnet_ids        = module.network.private_subnet_ids
+  frontend_api_sg_id        = module.network.frontend_api_security_group_id
+  worker_sg_id              = module.network.worker_security_group_id
+  api_target_group_arn      = module.alb.api_target_group_arn
   frontend_target_group_arn = module.alb.frontend_target_group_arn
-  aws_region = "us-east-1"
-  image_tag = "latest"
-  ecr_repository_urls = module.ecr.ecr_repository_urls
-  execution_role_arn = module.iam.execution_role_arn
+  aws_region                = "us-east-1"
+  image_tag                 = "latest"
+  ecr_repository_urls       = module.ecr.ecr_repository_urls
+  execution_role_arn        = module.iam.execution_role_arn
   task_role_arns = {
     "worker" = module.iam.ecs_task_role_worker_arn
-    "api" = module.iam.ecs_task_role_api_arn
+    "api"    = module.iam.ecs_task_role_api_arn
   }
-  depends_on = [ module.alb ]
-  
+  depends_on = [module.alb]
+
+}
+
+variable "domain_name" {
+  description = "Domain name"
+  type        = string
+}
+
+module "route53" {
+  source       = var.domain_name
+  alb_dns_name = module.load-balancer.alb_dns_name
+  alb_zone_id  = module.load-balancer.alb_zone_id
 }
