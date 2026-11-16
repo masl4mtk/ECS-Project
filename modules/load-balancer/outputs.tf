@@ -12,3 +12,13 @@ output "api_target_group_arn" {
   description = "ARN of the api target group"
   value       = aws_lb_target_group.api_tg.arn
 }
+
+output "zone_id" {
+  description = "Zone ID for ALB"
+  value       = aws_lb.ecs-lb.zone_id
+}
+
+output "dns_name" {
+  description = "DNS name of ALB"
+  value       = aws_lb.ecs-lb.dns_name
+}
