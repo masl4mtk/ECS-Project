@@ -60,7 +60,8 @@ variable "domain_name" {
 }
 
 module "route53" {
-  source       = var.domain_name
+  source       = "./modules/Route53"
+  domain_name  = var.domain_name
   alb_dns_name = module.load-balancer.alb_dns_name
   alb_zone_id  = module.load-balancer.alb_zone_id
 }
