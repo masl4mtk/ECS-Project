@@ -28,7 +28,7 @@ data "aws_iam_policy_document" "github_trust" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:masl4mtk/ECS-Project>:*"]
+      values   = ["repo:masl4mtk@283199617/ECS-Project@1446870598:*"]
     }
   }
 }
