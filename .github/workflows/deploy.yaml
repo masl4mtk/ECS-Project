@@ -1,14 +1,10 @@
 name: Deploying infrastructure
 
 on:
-    push:
-        branches:
-            - main
-    workflow_dispatch:
-        inputs:
-            image_tag:
-                description: "Commit SHA of the images to deploy"
-                required: true
+    workflow_run:
+        workflows: ["Image Build and Push"]
+        types: [completed]
+        branches: [main]
 
 permissions:
     id-token: write
@@ -17,33 +13,37 @@ permissions:
 jobs:
     terraform_plan:
         name: Terraform Plan
+        if: github.event.workflow_run.conclusion == 'success'
         runs-on: ubuntu-latest
         env:
             TF_VAR_domain_name: ${{ vars.DOMAIN_NAME }}
         steps:
             - name: Checkout
               uses: actions/checkout@v4
+              with:
+                ref: ${{ github.event.workflow_run.head_sha }}
 
             - name: Setup Terraform
               uses: hashicorp/setup-terraform@v3
 
             - name: AWS credentials
-              uses: aws-actions/configure-aws-credentials@v3
+              uses: aws-actions/configure-aws-credentials@v4
               with:
-                role-to-assume: ${{ vars.AWS_ROLE_ARN}}
-                aws-region: us-east-1  
-            
-            - name: terraform init
+                role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+                aws-region: us-east-1
+
+            - name: Terraform init
               run: terraform init
 
-            - name: terraform plan
-              run: terraform plan -out=tfplan -input=false -var="image_tag=${{ inputs.image_tag }}"
+            - name: Terraform plan
+              run: terraform plan -out=tfplan -input=false -var="image_tag=${{ github.event.workflow_run.head_sha }}"
 
-            - name: Upload Terraform Plan
+            - name: Upload Terraform plan
               uses: actions/upload-artifact@v4
               with:
                 name: terraform_plan
                 path: tfplan
+                retention-days: 1
 
     terraform_apply:
         needs: terraform_plan
@@ -53,23 +53,25 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v4
+              with:
+                ref: ${{ github.event.workflow_run.head_sha }}
 
             - name: Setup Terraform
               uses: hashicorp/setup-terraform@v3
 
             - name: AWS credentials
-              uses: aws-actions/configure-aws-credentials@v3
+              uses: aws-actions/configure-aws-credentials@v4
               with:
-                role-to-assume: ${{ vars.AWS_ROLE_ARN}}
-                aws-region: us-east-1  
-            
-            - name: terraform init
+                role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+                aws-region: us-east-1
+
+            - name: Terraform init
               run: terraform init
-            
-            - name: Download Terraform Plan
+
+            - name: Download Terraform plan
               uses: actions/download-artifact@v4
               with:
                 name: terraform_plan
 
-            - name: terraform apply
-              run: terraform apply tfplan
+            - name: Terraform apply
+              run: terraform apply -input=false tfplan
