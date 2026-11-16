@@ -1,6 +1,7 @@
 variable "image_tag" {
-  description = "image tag for ECS"
+  description = "Tag of the images in ECR"
   type        = string
+  default     = "latest"
 }
 
 variable "domain_name" {
