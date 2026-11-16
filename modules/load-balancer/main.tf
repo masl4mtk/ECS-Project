@@ -60,13 +60,18 @@ resource "aws_lb_listener" "http" {
   protocol          = "HTTP"
 
   default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.frontend_tg.arn
+    type = "redirect"
+
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
   }
 }
 
 resource "aws_lb_listener_rule" "api" {
-  listener_arn = aws_lb_listener.http.arn
+  listener_arn = aws_lb_listener.https.arn
   priority     = 10
 
   action {
@@ -79,4 +84,17 @@ resource "aws_lb_listener_rule" "api" {
       values = ["/api/*"]
     }
   }
+}
+
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.ecs-lb.arn
+  certificate_arn   = var.certificate_arn
+  port              = 443
+  protocol          = "HTTPS"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api_tg.arn
+  }
+
 }
