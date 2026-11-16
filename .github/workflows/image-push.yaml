@@ -17,6 +17,8 @@ jobs:
 
     create-repos:
         runs-on: ubuntu-latest
+        env:
+            TF_VAR_domain_name: ${{ vars.DOMAIN_NAME }}
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
