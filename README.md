@@ -1,121 +1,113 @@
-# OrderFlow: event-driven order system on AWS ECS Fargate
+# OrderFlow on AWS ECS Fargate
 
-OrderFlow is a small three-service application (frontend, API, worker) deployed on **AWS ECS Fargate** with Terraform, served over HTTPS on a custom domain, and delivered by three GitHub Actions pipelines that authenticate to AWS with OIDC (no long-lived keys).
+A small order system made of three services (frontend, API, worker), deployed to AWS ECS Fargate with Terraform. It runs over HTTPS on my own domain, and three GitHub Actions pipelines build and deploy it.
 
-The application is deliberately simple. The point of the project is the infrastructure and delivery around it.
+I built this to practise Docker, Terraform and CI/CD together. The app itself is simple on purpose. Most of the work is in the infrastructure and the pipelines.
 
 ## How it works
 
 ```
 Browser
-   |  HTTPS (443)            HTTP (80) is redirected to HTTPS
+   |  HTTPS (443), HTTP (80) redirects to HTTPS
    v
-Application Load Balancer  (ACM certificate, Route 53 alias record)
-   |-- /api/*  -->  API target group       -->  api service      (port 3000)
-   |-- default -->  frontend target group  -->  frontend service (port 8080)
+Application Load Balancer (ACM certificate, Route 53 alias record)
+   |-- /api/*  -> API target group      -> api service      (port 3000)
+   |-- default -> frontend target group -> frontend service (port 8080)
 
-api service     --> saves the order to RDS PostgreSQL as PENDING
-                --> sends {orderId} to the SQS queue
-worker service  --> polls SQS, sets PROCESSING, then COMPLETED or FAILED
-                --> failed messages go to a dead-letter queue after 3 receives
+api      saves the order to RDS PostgreSQL as PENDING, then sends the order ID to SQS
+worker   reads from SQS, sets PROCESSING, then COMPLETED or FAILED
+         messages that fail 3 times go to a dead-letter queue
 ```
 
-- The page polls `/api/orders` every 2 seconds, so you can watch an order move from PENDING to COMPLETED.
-- The three services never call each other directly. The queue decouples the API from the worker.
-- Entering the customer name `fail` triggers a simulated failure, which shows the retries and the dead-letter queue.
+The page checks `/api/orders` every 2 seconds, so you can watch an order go from PENDING to COMPLETED. The services never call each other directly, they only talk through the queue. If you enter the customer name `fail`, the worker fails the order on purpose, which lets you see the retries and the dead-letter queue.
 
 ## Project structure
 
 ```
 .
 ├── app/
-│   ├── api/                  Express API (Dockerfile, server.js)
-│   ├── worker/               SQS consumer (Dockerfile, worker.js)
-│   ├── frontend/             Static page served by nginx (Dockerfile, index.html)
-│   │   └── nginx.local.conf  Proxy config used by Docker Compose only
-│   └── elasticmq/            Local SQS emulator config for Compose
+│   ├── api/                  Express API
+│   ├── worker/               SQS consumer
+│   ├── frontend/             Static page served by nginx
+│   └── elasticmq/            Local SQS emulator config (Compose only)
 ├── modules/
-│   ├── networking/           VPC, subnets, NAT, route tables, security groups
-│   ├── load-balancer/        ALB, target groups, HTTPS listener, HTTP redirect
+│   ├── networking/           VPC, subnets, NAT, security groups
+│   ├── load-balancer/        ALB, target groups, listeners
 │   ├── Route53/              ACM certificate, DNS validation, alias record
-│   ├── ECR/                  Image repositories (one per service)
+│   ├── ECR/                  One image repository per service
 │   ├── ECS/                  Cluster, task definitions, services, log groups
-│   ├── IAM/                  Task execution role and per-service task roles
-│   ├── RDS/                  PostgreSQL instance and Secrets Manager password
+│   ├── IAM/                  Execution role and per-service task roles
+│   ├── RDS/                  PostgreSQL and the Secrets Manager password
 │   └── SQS/                  Orders queue and dead-letter queue
-├── bootstrap/                S3 state bucket and the GitHub Actions OIDC role
-├── .github/workflows/        The three pipelines (see below)
-├── .gitignore                Excludes .env, state files, .terraform/ and tfvars
-├── .terraform.lock.hcl       Provider version lock file
+├── bootstrap/                State bucket and the GitHub Actions OIDC role
+├── .github/workflows/        The three pipelines
 ├── docker-compose.yaml       Local environment
-├── main.tf                   Root module wiring the modules together
-├── terraform.tf              Terraform and provider versions, S3 backend
-├── .env.example              Variables for local Compose (copy to .env)
-└── README.md
+├── main.tf                   Root module
+├── terraform.tf              Versions and S3 backend
+└── .env.example              Variables for local Compose
 ```
 
-## Run it locally
+## Running it locally
 
-Requirements: Docker with Compose.
+You need Docker with Compose.
 
 ```bash
-cp .env.example .env        # then set real values for the three variables
+cp .env.example .env     # fill in the three values
 docker compose up --build
 ```
 
-Open <http://localhost:8080>. The local environment runs PostgreSQL and ElasticMQ (an SQS-compatible emulator) alongside the three services, with a named volume for the database. Stop it with `docker compose down` (add `-v` to remove the database volume).
+Then open http://localhost:8080. Compose starts PostgreSQL and ElasticMQ (an SQS-compatible emulator) next to the three services. `docker compose down -v` stops everything and removes the database volume.
 
-## Container images
+## Docker images
 
-- Multi-stage builds, pinned base image tags, and `.dockerignore` files.
-- The API and worker run as the non-root `node` user. The frontend uses the unprivileged nginx image (port 8080).
-- No secrets are baked into images. Locally they come from `.env`. On AWS the database password comes from Secrets Manager and is injected by ECS at runtime.
+- Multi-stage builds, pinned base image tags and a `.dockerignore` for each service.
+- The API and worker run as the non-root `node` user. The frontend uses the unprivileged nginx image on port 8080.
+- No secrets are in the images. Locally they come from `.env`. On AWS the database password is stored in Secrets Manager and ECS passes it to the container at startup.
 
-## Infrastructure (Terraform)
+## Infrastructure
 
-- Modules for networking, load balancer, DNS and certificate, ECR, ECS, IAM, RDS and SQS.
-- Two public and two private subnets across two availability zones, with a single NAT gateway for outbound access from the private subnets.
-- Fargate tasks run in private subnets. Only the load balancer is public.
-- Security groups: the ALB accepts 80 and 443 from anywhere; tasks accept traffic only from the ALB; the database accepts 5432 only from the task security groups.
-- Per-service IAM task roles (the API can send to SQS, the worker can receive and delete) and one shared execution role.
-- Remote state in S3 with native state locking (`use_lockfile`).
-- `for_each` and `locals` keep the three services and the repositories DRY.
+- Two public and two private subnets across two availability zones, with one NAT gateway for outbound traffic from the private subnets.
+- Fargate tasks sit in the private subnets. Only the load balancer is public.
+- Security groups: the ALB allows 80 and 443 from anywhere, the tasks only accept traffic from the ALB, and the database only accepts port 5432 from the tasks.
+- Each service has its own IAM task role (the API can send to SQS, the worker can receive and delete). They share one execution role.
+- Terraform state is in S3 with native locking (`use_lockfile`).
 
-### Prerequisites to deploy your own copy
+### Deploying your own copy
 
-1. An AWS account and AWS credentials for the first manual steps.
-2. A domain you own, with a public Route 53 hosted zone for the name you want to use (for example `orderflow.example.com`). If the domain is registered elsewhere, delegate the subdomain to Route 53 with NS records.
-3. Change the state bucket name in `terraform.tf` (bucket names are global), and create the bucket once from `bootstrap/`.
-4. Apply `bootstrap/` to create the GitHub Actions OIDC role. It references the GitHub OIDC provider that already exists in the account, so create the provider first if your account doesn't have it. Update the repository condition in its trust policy to match your own repository.
-5. In your GitHub repository, set these Actions variables: `AWS_ROLE_ARN` (the role created above) and `DOMAIN_NAME` (your domain). Create an environment named `production` with a required reviewer, which gates deployments.
+1. You need an AWS account and credentials for the first manual steps.
+2. You need a domain with a public Route 53 hosted zone for the name you want to use. If the domain is registered somewhere else, add NS records there pointing the subdomain to Route 53.
+3. Change the state bucket name in `terraform.tf` (bucket names are global) and create the bucket from `bootstrap/`.
+4. Apply `bootstrap/` to create the GitHub Actions role. It uses the GitHub OIDC provider that already exists in my account, so create that provider first if you don't have one, and change the repository in the trust policy to yours.
+5. In the GitHub repository, add two Actions variables: `AWS_ROLE_ARN` (the role from step 4) and `DOMAIN_NAME`. Also create an environment called `production` with a required reviewer, since that is the approval step for deployments.
 
-## Pipelines (GitHub Actions)
+## Pipelines
 
-All three authenticate with OIDC (`aws-actions/configure-aws-credentials`) and assume a role that is trusted only for this repository.
+All three log in to AWS with OIDC, so there are no access keys stored in GitHub. The role can only be assumed from this repository.
 
-| Pipeline | Trigger | What it does |
+| Pipeline | When it runs | What it does |
 |---|---|---|
-| **Image build and push** | Push to `main` that changes `app/**` or `modules/ECR/**`, or manual | Creates the ECR repositories (`terraform apply -target=module.ecr`), then builds the three images and pushes them tagged with the commit SHA |
-| **Plan and validate** | Pull request, push to `feature/**`, or manual | `terraform fmt`, `validate`, `tflint`, Trivy configuration scan, then `terraform plan` |
-| **Deploy** | Automatically after a successful image build and push | `terraform plan` using the commit SHA of the images just built, then `terraform apply` after manual approval through the `production` environment |
+| Image build and push | Push to `main` that changes `app/**` or `modules/ECR/**`, or manually | Creates the ECR repositories, then builds the three images and pushes them tagged with the commit SHA |
+| Plan and validate | Pull request, push to `feature/**`, or manually | Runs `terraform fmt`, `validate`, `tflint`, a Trivy scan, then `terraform plan` |
+| Deploy | After a successful image build and push | Runs `terraform plan` with the new image tag, waits for approval on the `production` environment, then runs `terraform apply` |
 
-The image pipeline tags every image with the commit SHA. The deploy pipeline starts when that run finishes and passes the same SHA to Terraform as `image_tag`, so every running version traces back to a commit. Nothing is entered by hand.
+Every image is tagged with the commit SHA. When the image pipeline finishes, the deploy pipeline starts on its own and gives Terraform the same SHA as `image_tag`, so the running version always matches a commit. Nothing has to be typed in by hand.
 
-## Design decisions and trade-offs
+## Decisions and trade-offs
 
-- **Repositories created in the image pipeline with `-target`.** The repositories must exist before images can be pushed, and the images must exist before ECS can start tasks. Creating only the ECR module first breaks that cycle.
-- **Plan artifact retention is one day.** Plan files can contain sensitive values, so they are kept briefly.
-- **The CI role has broad service permissions** (for example `iam:*`, `ec2:*`). That is acceptable for a demo; in production they would be scoped to specific resources.
-- **Trivy runs in report-only mode** (`exit-code: 0`). Findings are visible but do not block the pipeline; tightening that is a later step.
-- **Single NAT gateway** keeps the cost down. A production setup would use one per availability zone.
-- **Public ALB, private tasks.** TLS ends at the load balancer; traffic to the tasks inside the VPC is plain HTTP.
+- **ECR is created inside the image pipeline** with `terraform apply -target=module.ecr`. The repositories have to exist before images can be pushed, and the images have to exist before ECS can start tasks, so I create the repositories first.
+- **Plan artifacts are kept for one day**, because plan files can contain sensitive values.
+- **The CI role has broad permissions** (for example `iam:*` and `ec2:*`). That is fine for a demo, but in a real setup I would limit it to specific resources.
+- **Trivy only reports.** It uses `exit-code: 0`, so findings show up in the logs but don't fail the pipeline. Making it block is something I'd add next.
+- **One NAT gateway** to keep the cost down. For production I'd use one per availability zone.
+- **TLS ends at the load balancer.** Traffic between the ALB and the tasks inside the VPC is plain HTTP.
+- **Terraform-only changes don't trigger a deploy yet.** The deploy pipeline starts from the image pipeline, so a change that doesn't touch `app/` or `modules/ECR/` won't start it.
 
 ## Cost and cleanup
 
-The NAT gateway, load balancer and RDS instance bill by the hour. When you are finished:
+The NAT gateway, load balancer and RDS instance are billed by the hour, so destroy the stack when you're done:
 
 ```bash
 terraform destroy
 ```
 
-The state bucket and the OIDC role in `bootstrap/` are intentionally kept, so the pipelines can deploy again later.
+The state bucket and the OIDC role in `bootstrap/` stay, so the pipelines can deploy again later.
