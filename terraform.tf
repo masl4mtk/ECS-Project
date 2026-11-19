@@ -29,6 +29,3 @@ provider "aws" {
     }
   }
 }
-
-
-## Tags must be added later
